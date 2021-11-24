@@ -1,0 +1,97 @@
+﻿@page "/fetchdata"
+
+@using ClientesWebApp.Data;
+@using Microsoft.WindowsAzure.Storage;
+@using Microsoft.WindowsAzure.Storage.Table;
+@using System.Threading.Tasks;
+@using System.Linq;
+@using System.Collections.Generic;
+
+
+<link rel="stylesheet" href="/css/styles.css">
+
+<h1>Información de los clientes</h1>
+<div class="container">
+    @foreach (Clientes c in ListaClientes)
+    {
+        <div class="card">
+            <div class="imgBx">
+                <img src="@c.Imagen" alt="">
+            </div>
+            <div class="contentBx">
+                <h2>
+                    Nombre:
+                    @c.RowKey
+                </h2>
+                <p>Domicilio: @c.Domicilio</p>
+                <p>Teléfono: @c.Telefono</p>
+                <p>Correo: @c.Correo</p>
+                <p>Credito: @c.Credito</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    List<Clientes> ListaClientes = new List<Clientes>();
+    List<ElementosdelaTabla> ElementosTabla = new List<ElementosdelaTabla>();
+    string imagen;
+    protected override async Task OnInitializedAsync()
+    {
+        var CuentadeAlmacenamiento = CloudStorageAccount.Parse("");
+        var TablaNoSQL = CuentadeAlmacenamiento.CreateCloudTableClient();
+        var Tabla = TablaNoSQL.GetTableReference("Cliente");
+        var Consulta = new TableQuery<Clientes>();
+        TableContinuationToken token = null;
+        try
+        {
+            var Datos = await Tabla.ExecuteQuerySegmentedAsync<Clientes>(Consulta, token, null, null);
+            ListaClientes.AddRange(Datos.Results);
+            int iNombre = 0;
+            int iTelefono = 0;
+            int iImagen = 0;
+            int iCorreo = 0;
+            int iDomicilio = 0;
+            int iCredito = 0;
+            ElementosTabla = ListaClientes.Select(r => new ElementosdelaTabla()
+            {
+                Nombre = ListaClientes.ElementAt(iNombre++).RowKey,
+                Domicilio = ListaClientes.ElementAt(iDomicilio++).Domicilio,
+                Telefono = ListaClientes.ElementAt(iTelefono++).Telefono,
+                Correo = ListaClientes.ElementAt(iCorreo++).Correo,
+                Credito = ListaClientes.ElementAt(iCredito++).Credito,
+                Imagen = ListaClientes.ElementAt(iImagen++).Imagen
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    public class Clientes : TableEntity
+    {
+        public Clientes(string Categoria, string Nombre)
+        {
+            PartitionKey = Categoria;
+            RowKey = Nombre;
+        }
+        public Clientes()
+        {
+
+        }
+        public string Domicilio { get; set; }
+        public string Telefono { get; set; }
+        public string Correo { get; set; }
+        public double Credito { get; set; }
+        public string Imagen { get; set; }
+    }
+    public class ElementosdelaTabla
+    {
+        public string Nombre { get; set; }
+        public string Domicilio { get; set; }
+        public string Telefono { get; set; }
+        public string Correo { get; set; }
+        public double Credito { get; set; }
+        public string Imagen { get; set; }
+    }
+}
